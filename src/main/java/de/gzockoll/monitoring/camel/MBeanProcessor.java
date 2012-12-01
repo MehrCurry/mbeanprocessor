@@ -47,7 +47,7 @@ public class MBeanProcessor implements Processor {
 		double scale = Double.parseDouble((String) in.getHeader("Scale", "1"));
 
 		String url = "service:jmx:rmi:///jndi/rmi://" + host + ":" + port
-				+ "/jmxrmi";
+				+ "/karaf-root";
 		LOGGER.debug("Trying to connect to: " + url);
 		JMXServiceURL serviceUrl = new JMXServiceURL(url);
 
