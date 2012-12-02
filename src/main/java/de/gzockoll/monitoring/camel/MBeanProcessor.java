@@ -33,8 +33,7 @@ public class MBeanProcessor implements Processor {
 	public void process(Exchange exchange) throws Exception {
 		List<Measurement> results = new ArrayList<Measurement>();
 		Message in = exchange.getIn();
-		String host = (String) in.getHeader("jmxHost");
-		int port = Integer.parseInt((String) in.getHeader("jmxPort"));
+		String serviceURL = (String) in.getHeader("jmxServiceUrl","service:jmx:rmi:///jndi/rmi://localhost:1099/jmxrmi");
 		String user = (String) in.getHeader("jmxUser");
 		String pass = (String) in.getHeader("jmxPassword");
 
@@ -46,10 +45,8 @@ public class MBeanProcessor implements Processor {
 		Units u = Units.valueOf((String) in.getHeader("Unit"));
 		double scale = Double.parseDouble((String) in.getHeader("Scale", "1"));
 
-		String url = "service:jmx:rmi:///jndi/rmi://" + host + ":" + port
-				+ "/karaf-root";
-		LOGGER.debug("Trying to connect to: " + url);
-		JMXServiceURL serviceUrl = new JMXServiceURL(url);
+		LOGGER.debug("Trying to connect to: " + serviceURL);
+		JMXServiceURL serviceUrl = new JMXServiceURL(serviceURL);
 
 		Map<String, Object> environment = null;
 		if (!StringUtils.isEmpty(pass)) {
