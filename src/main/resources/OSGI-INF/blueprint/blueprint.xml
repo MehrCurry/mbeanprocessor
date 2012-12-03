@@ -7,4 +7,7 @@
     
 	<bean id="mbeanProcessor" class="de.gzockoll.monitoring.camel.MBeanProcessor" />
 	<service id="mbeanProcessorService" ref="mbeanProcessor" interface="org.apache.camel.Processor" />
+
+	<bean id="measurementProcessor" class="de.gzockoll.monitoring.camel.SimpleMeasurementProcessor" />
+	<service id="measurementProcessorService" ref="measurementProcessor" interface="org.apache.camel.Processor" />
 </blueprint>

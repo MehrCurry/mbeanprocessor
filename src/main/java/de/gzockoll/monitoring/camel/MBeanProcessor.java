@@ -1,5 +1,7 @@
 package de.gzockoll.monitoring.camel;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
@@ -21,8 +23,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.gzockoll.observation.Measurement;
-
 public class MBeanProcessor implements Processor {
 	private static Logger LOGGER=LoggerFactory.getLogger(MBeanProcessor.class);
 	private static final char DECIMAL_SEPARATOR = DecimalFormatSymbols
@@ -31,32 +31,20 @@ public class MBeanProcessor implements Processor {
 
 	@Override
 	public void process(Exchange exchange) throws Exception {
-		List<Measurement> results = new ArrayList<Measurement>();
+		List<SimpleMeasurement> results = new ArrayList<SimpleMeasurement>();
 		Message in = exchange.getIn();
 		String serviceURL = (String) in.getHeader("jmxServiceUrl","service:jmx:rmi:///jndi/rmi://localhost:1099/jmxrmi");
 		String user = (String) in.getHeader("jmxUser");
 		String pass = (String) in.getHeader("jmxPassword");
 
+		JMXConnector jmxConnector = connect(serviceURL, user, pass);
+
 		ObjectName name = new ObjectName((String) in.getHeader("jmxObjectName"));
 		String[] attributeNames = ((String) in
 				.getHeader("jmxAttributeName", "")).split(",");
 		String id = (String) in.getHeader("MeasurementID");
-		Phaenomens p = Phaenomens.valueOf((String) in.getHeader("Phaenomen"));
-		Units u = Units.valueOf((String) in.getHeader("Unit"));
 		double scale = Double.parseDouble((String) in.getHeader("Scale", "1"));
 
-		LOGGER.debug("Trying to connect to: " + serviceURL);
-		JMXServiceURL serviceUrl = new JMXServiceURL(serviceURL);
-
-		Map<String, Object> environment = null;
-		if (!StringUtils.isEmpty(pass)) {
-			environment = new HashMap<String, Object>();
-			String[] credentials = new String[] { user, pass };
-			environment.put(JMXConnector.CREDENTIALS, credentials);
-		}
-
-		JMXConnector jmxConnector = JMXConnectorFactory.connect(serviceUrl,
-				environment);
 
 		Number value = null;
 		try {
@@ -79,7 +67,7 @@ public class MBeanProcessor implements Processor {
 				} else
 					throw new IllegalArgumentException("Unknown type: "
 							+ result);
-				results.add(new Measurement(id + "." + attribute, p, u, value
+				results.add(new SimpleMeasurement(id + "." + attribute, value
 						.doubleValue() / (double) scale));
 
 			}
@@ -89,5 +77,22 @@ public class MBeanProcessor implements Processor {
 			jmxConnector.close();
 		}
 		exchange.getIn().setBody(results);
+	}
+
+	private JMXConnector connect(String serviceURL, String user, String pass)
+			throws MalformedURLException, IOException {
+		LOGGER.debug("Trying to connect to: " + serviceURL);
+		JMXServiceURL serviceUrl = new JMXServiceURL(serviceURL);
+
+		Map<String, Object> environment = null;
+		if (!StringUtils.isEmpty(pass)) {
+			environment = new HashMap<String, Object>();
+			String[] credentials = new String[] { user, pass };
+			environment.put(JMXConnector.CREDENTIALS, credentials);
+		}
+
+		JMXConnector jmxConnector = JMXConnectorFactory.connect(serviceUrl,
+				environment);
+		return jmxConnector;
 	}
 }
