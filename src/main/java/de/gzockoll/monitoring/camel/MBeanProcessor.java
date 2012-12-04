@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.management.AttributeNotFoundException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeDataSupport;
@@ -53,22 +54,26 @@ public class MBeanProcessor implements Processor {
 
 			for (String attribute : attributeNames) {
 				String[] parts = attribute.split("\\.");
-				Object result = mBeanServerConnection.getAttribute(name,
-						parts[0]);
-				if (result instanceof Number)
-					value = (Number) result;
-				else if (result instanceof String) {
-					String s = (String) result;
-					value = Double.parseDouble(s.replace(',', '.'));
-				} else if (result instanceof CompositeDataSupport) {
-					CompositeDataSupport cds = (CompositeDataSupport) result;
-					value = (Number) ((CompositeDataSupport) result)
-							.get(parts[1]);
-				} else
-					throw new IllegalArgumentException("Unknown type: "
-							+ result);
-				results.add(new SimpleMeasurement(id + "." + attribute, value
-						.doubleValue() / (double) scale));
+				try {
+					Object result = mBeanServerConnection.getAttribute(name,
+							parts[0]);
+					if (result instanceof Number)
+						value = (Number) result;
+					else if (result instanceof String) {
+						String s = (String) result;
+						value = Double.parseDouble(s.replace(',', '.'));
+					} else if (result instanceof CompositeDataSupport) {
+						CompositeDataSupport cds = (CompositeDataSupport) result;
+						value = (Number) ((CompositeDataSupport) result)
+								.get(parts[1]);
+					} else
+						throw new IllegalArgumentException("Unknown type: "
+								+ result);
+					results.add(new SimpleMeasurement(id + "." + attribute, value
+							.doubleValue() / (double) scale));
+				} catch (AttributeNotFoundException e) {
+					LOGGER.warn("Warning:",e);
+				}
 
 			}
 		} catch (Exception e) {
